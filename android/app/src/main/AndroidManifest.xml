@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.scysco.gafemp">
+   <uses-permission android:name="android.permission.CAMERA" />
    <application
         android:label="gafemp"
         android:icon="@mipmap/ic_launcher">

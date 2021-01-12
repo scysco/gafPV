@@ -1,11 +1,18 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+
+import 'package:gafemp/pages/home_page.dart';
 
 class LoginPage extends StatelessWidget {
   final Color colorP = Color.fromARGB(255, 0, 77, 64);
   final ctlMail = TextEditingController();
   final ctlPassword = TextEditingController();
   final FirebaseAuth auth = FirebaseAuth.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +50,9 @@ class LoginPage extends StatelessWidget {
                         child: Text("ENTRAR",
                             style: TextStyle(
                                 fontSize: 22, fontWeight: FontWeight.w400)),
-                        onPressed: login,
+                        onPressed: () {
+                          login(context);
+                        },
                       ),
                     ),
                   ],
@@ -97,11 +106,20 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  Future<void> login() async {
+  Future<void> login(BuildContext context) async {
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-              email: ctlMail.text, password: ctlPassword.text);
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: ctlMail.text,
+        password: ctlPassword.text,
+      );
+
+      if (userCredential != null) {
+        final Map data = await _data;
+        writeUser(data);
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => HomePage()));
+      }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         print('No user found for that email.');
@@ -109,5 +127,41 @@ class LoginPage extends StatelessWidget {
         print('Wrong password provided for that user.');
       }
     }
+  }
+
+  Future<Map<String, dynamic>> get _data async {
+    Map user;
+    await firestore
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser.uid)
+        .get()
+        .then((DocumentSnapshot documentSnapshot) {
+      if (documentSnapshot.exists) {
+        print('Document data: ${documentSnapshot.data()}');
+        //print(data['name']);
+        user = documentSnapshot.data();
+      } else {
+        print('Document does not exist on the database');
+      }
+    });
+    return user;
+  }
+
+  Future<File> writeUser(Map user) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final path = directory.path;
+    String ustw = 'name:' +
+        user['name'] +
+        ',secondName:' +
+        user['secondName'] +
+        ',thirdName:' +
+        user['thirdName'] +
+        ',stores:' +
+        user['stores'] +
+        ',permissions:' +
+        user['permissions'] +
+        ',image:' +
+        user['image'];
+    return File('$path/user.gaf').writeAsString(ustw);
   }
 }

@@ -1,7 +1,32 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
 
-class HomePage extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:gafemp/pages/cart_page.dart';
+import 'package:gafemp/pages/products_page.dart';
+import 'package:path_provider/path_provider.dart';
+
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   final Color colorP = Color.fromARGB(255, 0, 77, 64);
+
+  String userData = '';
+  String userName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    readUser().then((String value) {
+      setState(() {
+        userData = value;
+        userName = userData.split(',')[0].split(':')[1];
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,7 +50,8 @@ class HomePage extends StatelessWidget {
             padding: EdgeInsets.all(14),
             child: FloatingActionButton(
               onPressed: () {
-                // Add your onPressed code here!
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => CartPage()));
               },
               child: Image(
                 image: AssetImage('assets/cart.png'),
@@ -55,7 +81,7 @@ class HomePage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Hola Peter",
+                          "Hola " + userName,
                           style: TextStyle(
                             fontSize: 20,
                             color: Colors.white,
@@ -64,7 +90,7 @@ class HomePage extends StatelessWidget {
                         ),
                         SizedBox(height: 5.0),
                         Text(
-                          "Bienvenido de regreso lorem",
+                          "Bienvenido de regreso",
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.white,
@@ -78,8 +104,8 @@ class HomePage extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.all(20),
                   child: CircleAvatar(
-                    child: Text('SL'),
-                    backgroundColor: Colors.brown,
+                    child: Text('JS'),
+                    backgroundColor: Colors.white70,
                     radius: 26,
                   ),
                 ),
@@ -153,9 +179,17 @@ class HomePage extends StatelessWidget {
                     Container(
                       child: Column(
                         children: [
-                          Image(
-                            image: AssetImage('assets/products.png'),
-                            width: 80,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => ProductsPage()));
+                            },
+                            child: Image(
+                              image: AssetImage('assets/products.png'),
+                              height: 66,
+                            ),
                           ),
                           Text('Productos'),
                         ],
@@ -229,5 +263,25 @@ class HomePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<String> readUser() async {
+    try {
+      final file = await _localFile;
+
+      // Read the file.
+      String contents = await file.readAsString();
+
+      return contents;
+    } catch (e) {
+      // If encountering an error, return 0.
+      return "default";
+    }
+  }
+
+  Future<File> get _localFile async {
+    final directory = await getApplicationDocumentsDirectory();
+    final path = directory.path;
+    return File('$path/user.gaf');
   }
 }
