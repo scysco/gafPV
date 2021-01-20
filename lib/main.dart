@@ -1,10 +1,10 @@
-import 'dart:io';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gafemp/model/user_gaf.dart';
 import 'package:gafemp/pages/products_page.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'package:gafemp/pages/home_page.dart';
 import 'package:gafemp/pages/login_page.dart';
@@ -51,9 +51,9 @@ class MyApp extends StatelessWidget {
   }
 
   FutureBuilder myApp(BuildContext context) {
-    return FutureBuilder<File>(
+    return FutureBuilder<UserGaf>(
       // Initialize FlutterFire
-      future: _userFile(),
+      future: _user(),
       builder: (context, snapshot) {
         // Check for errors
         if (snapshot.hasError) {
@@ -62,8 +62,8 @@ class MyApp extends StatelessWidget {
 
         // Once complete, show your application
         if (snapshot.connectionState == ConnectionState.done) {
-          if (snapshot.data.existsSync()) {
-            return myHome(context);
+          if (snapshot.data != null) {
+            return HomePage(snapshot.data);
           } else {
             return LoginPage();
           }
@@ -75,37 +75,27 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  FutureBuilder myHome(BuildContext context) {
-    return FutureBuilder<File>(
-      // Initialize FlutterFire
-      future: _getData(),
-      builder: (context, snapshot) {
-        // Check for errors
-        if (snapshot.hasError) {
-          return somethingWentWrong(context);
+  Future<UserGaf> _user() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    UserGaf user;
+    if (auth.currentUser != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(auth.currentUser.uid)
+          .get()
+          .then((DocumentSnapshot documentSnapshot) {
+        if (documentSnapshot.exists) {
+          user = UserGaf.map(documentSnapshot.data());
+          print('Document data: ${documentSnapshot.data()}');
+        } else {
+          user = null;
+          print('Document does not exist on the database');
         }
-
-        // Once complete, show your application
-        if (snapshot.connectionState == ConnectionState.done) {
-          return HomePage();
-        }
-
-        // Otherwise, show something whilst waiting for initialization to complete
-        return loading(context);
-      },
-    );
-  }
-
-  Future<File> _getData() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = directory.path;
-    return File('$path/user.gaf');
-  }
-
-  Future<File> _userFile() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = directory.path;
-    return File('$path/user.gaf');
+      });
+    } else {
+      user = null;
+    }
+    return user;
   }
 
   Widget loading(BuildContext context) {

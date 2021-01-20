@@ -31,7 +31,7 @@ class _NewProductPageState extends State<NewProductPage> {
   void initState() {
     super.initState();
     if (data != null) {
-      ctrlCode.text = data['id'];
+      ctrlCode.text = data['code'];
       ctrlName.text = data['nombre'];
       ctrlBrand.text = data['marca'];
       ctrlType.text = data['tipo'];

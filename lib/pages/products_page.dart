@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:gafemp/model/product_gaf.dart';
 import 'package:gafemp/pages/new_product_page.dart';
 import 'package:gafemp/widget/product.dart';
@@ -13,6 +14,10 @@ class _ProductsPageState extends State<ProductsPage> {
   final Color colorP = Color.fromARGB(255, 0, 77, 64);
   CollectionReference users = FirebaseFirestore.instance
       .collection('stores/goyEoBspy0fCNUIgdPWE/products');
+
+  List<QueryDocumentSnapshot> srchProds;
+  List<QueryDocumentSnapshot> srchProdsTemp = [];
+  TextEditingController ctrlSearch = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +92,26 @@ class _ProductsPageState extends State<ProductsPage> {
                       const Radius.circular(10.0),
                     ),
                     child: InkWell(
-                      onTap: () {},
+                      onTap: () async {
+                        String qrCodeResult =
+                            await FlutterBarcodeScanner.scanBarcode(
+                                "#004d40", "Cancel", true, ScanMode.QR);
+                        if (qrCodeResult != null) {
+                          ProductGaf prod;
+                          srchProds.forEach((element) {
+                            if (element.id == qrCodeResult) {
+                              prod = ProductGaf.map(element.data(),
+                                  code: element.id);
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => NewProductPage(
+                                            data: prod.product,
+                                          )));
+                            }
+                          });
+                        }
+                      },
                       customBorder: CircleBorder(),
                       child: Image(
                         image: AssetImage('assets/qrsec.png'),
@@ -100,6 +124,33 @@ class _ProductsPageState extends State<ProductsPage> {
                   child: Container(
                     padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
                     child: TextField(
+                      controller: ctrlSearch,
+                      onChanged: (value) {
+                        isFirstView = false;
+                        List<QueryDocumentSnapshot> temp = [];
+                        srchProds.forEach((element) {
+                          String sn = element.data()['nombre'];
+                          String sm = element.data()['marca'];
+                          bool insertProduct = false;
+                          if (sn
+                              .toLowerCase()
+                              .startsWith(value.toLowerCase())) {
+                            insertProduct = true;
+                          }
+                          if (sm
+                              .toLowerCase()
+                              .startsWith(value.toLowerCase())) {
+                            insertProduct = true;
+                          }
+                          if (insertProduct) {
+                            temp.add(element);
+                          }
+                        });
+                        setState(() {
+                          srchProdsTemp = temp;
+                          temp = [];
+                        });
+                      },
                       //style: TextStyle(fontSize: 10),
                       decoration: InputDecoration(
                         filled: true,
@@ -128,6 +179,7 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
+  bool isFirstView = true;
   Widget _center() {
     return Expanded(
       child: ClipRRect(
@@ -144,38 +196,54 @@ class _ProductsPageState extends State<ProductsPage> {
               }
 
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Text("Loading");
+                return Container(
+                  child: Text(
+                    "Loading",
+                    textAlign: TextAlign.center,
+                  ),
+                  width: double.infinity,
+                );
+              } else {
+                srchProds = snapshot.data.docs;
+                return ListView.builder(
+                    padding: EdgeInsets.all(25),
+                    itemCount:
+                        isFirstView ? srchProds.length : srchProdsTemp.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      Map ds;
+                      String id;
+                      if (isFirstView) {
+                        ds = srchProds[index].data();
+                        id = srchProds[index].id;
+                      } else {
+                        ds = srchProdsTemp[index].data();
+                        id = srchProdsTemp[index].id;
+                      }
+                      ds['code'] = id;
+                      return Material(
+                        color: Colors.white,
+                        child: InkWell(
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => NewProductPage(
+                                        data: ds,
+                                      ))),
+                          child: Product(
+                              Colors.black87,
+                              ProductGaf(
+                                  ds['code'],
+                                  ds['nombre'],
+                                  ds['marca'],
+                                  double.parse(ds['costo'].toString()),
+                                  double.parse(ds['precio'].toString()),
+                                  ds['tipo'],
+                                  double.parse(ds['unidades'].toString()),
+                                  ['s', 'sd'])),
+                        ),
+                      );
+                    });
               }
-              return ListView.builder(
-                  padding: EdgeInsets.all(25),
-                  itemCount: snapshot.data.docs.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    Map ds = snapshot.data.docs[index].data();
-                    String id = snapshot.data.docs[index].id;
-                    ds['id'] = id;
-                    return Material(
-                      color: Colors.white,
-                      child: InkWell(
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => NewProductPage(
-                                      data: ds,
-                                    ))),
-                        child: Product(
-                            Colors.black87,
-                            ProductGaf(
-                                ds['code'],
-                                ds['nombre'],
-                                ds['marca'],
-                                double.parse(ds['costo'].toString()),
-                                double.parse(ds['precio'].toString()),
-                                ds['tipo'],
-                                double.parse(ds['unidades'].toString()),
-                                ['s', 'sd'])),
-                      ),
-                    );
-                  });
             },
           ),
         ),

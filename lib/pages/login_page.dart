@@ -118,7 +118,7 @@ class LoginPage extends StatelessWidget {
         final Map data = await _data;
         writeUser(data);
         Navigator.push(
-            context, MaterialPageRoute(builder: (context) => HomePage()));
+            context, MaterialPageRoute(builder: (context) => HomePage(null)));
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {

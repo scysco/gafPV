@@ -477,7 +477,6 @@ class _CartPageState extends State<CartPage> {
       barrierDismissible: true,
       builder: (context) {
         return StatefulBuilder(builder: (_context, _setState) {
-          TextEditingController ctrlText = TextEditingController();
           TextEditingController ctrlTextAddProd = TextEditingController();
 
           return AlertDialog(

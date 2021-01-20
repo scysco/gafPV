@@ -1,31 +1,23 @@
-import 'dart:io';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:flutter/material.dart';
+import 'package:gafemp/model/user_gaf.dart';
 import 'package:gafemp/pages/cart_page.dart';
 import 'package:gafemp/pages/products_page.dart';
-import 'package:path_provider/path_provider.dart';
 
 class HomePage extends StatefulWidget {
+  final UserGaf user;
+  HomePage(this.user);
   @override
-  _HomePageState createState() => _HomePageState();
+  _HomePageState createState() => _HomePageState(user);
 }
 
 class _HomePageState extends State<HomePage> {
   final Color colorP = Color.fromARGB(255, 0, 77, 64);
+  FirebaseAuth auth = FirebaseAuth.instance;
+  UserGaf user;
 
-  String userData = '';
-  String userName = '';
-
-  @override
-  void initState() {
-    super.initState();
-    readUser().then((String value) {
-      setState(() {
-        userData = value;
-        userName = userData.split(',')[0].split(':')[1];
-      });
-    });
-  }
+  _HomePageState(this.user);
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +60,7 @@ class _HomePageState extends State<HomePage> {
   Widget _top() {
     return Container(
       color: colorP,
-      height: 160,
+      height: 150,
       child: Column(
         children: [
           Container(
@@ -81,7 +73,7 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Hola " + userName,
+                          "Hola " + user.name,
                           style: TextStyle(
                             fontSize: 20,
                             color: Colors.white,
@@ -90,7 +82,9 @@ class _HomePageState extends State<HomePage> {
                         ),
                         SizedBox(height: 5.0),
                         Text(
-                          "Bienvenido de regreso",
+                          user.genre == 'Hombre'
+                              ? 'Bienvenido de regreso'
+                              : 'Bienvenida de regreso',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.white,
@@ -101,12 +95,17 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                Container(
-                  padding: EdgeInsets.all(20),
-                  child: CircleAvatar(
-                    child: Text('JS'),
-                    backgroundColor: Colors.white70,
-                    radius: 26,
+                Material(
+                  color: colorP,
+                  child: InkWell(
+                    customBorder: CircleBorder(),
+                    onTap: () {
+                      _avatarPanel(context);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(10),
+                      child: _avatarLoad(26),
+                    ),
                   ),
                 ),
               ],
@@ -138,6 +137,13 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  Future<String> _urlImage() async {
+    String url = await firebase_storage.FirebaseStorage.instance
+        .ref('profilePictures/' + auth.currentUser.uid + '.jpg')
+        .getDownloadURL();
+    return url;
   }
 
   Widget _center() {
@@ -265,23 +271,76 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<String> readUser() async {
-    try {
-      final file = await _localFile;
-
-      // Read the file.
-      String contents = await file.readAsString();
-
-      return contents;
-    } catch (e) {
-      // If encountering an error, return 0.
-      return "default";
-    }
+  void _avatarPanel(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, _setState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0)),
+            title: Text('Cambiar Foto de Perfil'),
+            content: Container(
+              width: MediaQuery.of(context).size.width * .60,
+              height: MediaQuery.of(context).size.height * .30,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Container(
+                    margin: EdgeInsets.fromLTRB(20, 25, 20, 30),
+                    child: _avatarLoad(80),
+                  ),
+                  Material(
+                    color: Colors.white,
+                    child: InkWell(
+                      customBorder: CircleBorder(),
+                      onTap: () {},
+                      child: Container(
+                        padding: EdgeInsets.all(20),
+                        child: Text(
+                          "ACEPTAR",
+                          style: TextStyle(
+                            color: colorP,
+                            fontSize: 25,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
   }
 
-  Future<File> get _localFile async {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = directory.path;
-    return File('$path/user.gaf');
+  Widget _avatarLoad(double radius) {
+    return user.image
+        ? FutureBuilder<String>(
+            future: _urlImage(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                if (snapshot.data != null) {
+                  return CircleAvatar(
+                    backgroundImage: NetworkImage(snapshot.data),
+                    radius: radius,
+                  );
+                } else {}
+              }
+              return CircleAvatar(
+                child: Text(user.name[0] + user.secondName[0]),
+                backgroundColor: Colors.white70,
+                radius: radius,
+              );
+            },
+          )
+        : CircleAvatar(
+            child: Text(user.name[0] + user.secondName[0]),
+            backgroundColor: Colors.white70,
+            radius: radius,
+          );
   }
 }
