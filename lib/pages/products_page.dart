@@ -76,26 +76,51 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
           ),
           Container(
-            padding: EdgeInsets.fromLTRB(20, 0, 20, 10),
-            height: 62,
-            child: TextField(
-              //style: TextStyle(fontSize: 10),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                hintText: "Buscar procuctos",
-                border: new OutlineInputBorder(
-                  borderRadius: const BorderRadius.all(
-                    const Radius.circular(10.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: EdgeInsets.fromLTRB(20, 0, 0, 20),
+                  child: Material(
+                    borderRadius: const BorderRadius.all(
+                      const Radius.circular(10.0),
+                    ),
+                    child: InkWell(
+                      onTap: () {},
+                      customBorder: CircleBorder(),
+                      child: Image(
+                        image: AssetImage('assets/qrsec.png'),
+                        height: 50,
+                      ),
+                    ),
                   ),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: const BorderRadius.all(
-                    const Radius.circular(10.0),
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    child: TextField(
+                      //style: TextStyle(fontSize: 10),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        hintText: "Buscar procuctos",
+                        border: new OutlineInputBorder(
+                          borderRadius: const BorderRadius.all(
+                            const Radius.circular(10.0),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: const BorderRadius.all(
+                            const Radius.circular(10.0),
+                          ),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
                   ),
-                  borderSide: BorderSide.none,
                 ),
-              ),
+              ],
             ),
           ),
         ],
