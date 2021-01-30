@@ -4,7 +4,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gafemp/model/user_gaf.dart';
-import 'package:gafemp/pages/products_page.dart';
 
 import 'package:gafemp/pages/home_page.dart';
 import 'package:gafemp/pages/login_page.dart';
@@ -25,9 +24,6 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           primaryColor: colorP, // default value
         ),
-        routes: <String, WidgetBuilder>{
-          '/ProductPage': (BuildContext context) => ProductsPage(),
-        },
         home: FutureBuilder(
           // Initialize FlutterFire
           future: Firebase.initializeApp(),

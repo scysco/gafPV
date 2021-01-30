@@ -2,22 +2,35 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:gafemp/model/product_gaf.dart';
+import 'package:gafemp/model/user_gaf.dart';
 import 'package:gafemp/pages/new_product_page.dart';
 import 'package:gafemp/widget/product.dart';
 
 class ProductsPage extends StatefulWidget {
+  final UserGaf user;
+  ProductsPage(this.user);
   @override
-  _ProductsPageState createState() => _ProductsPageState();
+  _ProductsPageState createState() => _ProductsPageState(user);
 }
 
 class _ProductsPageState extends State<ProductsPage> {
   final Color colorP = Color.fromARGB(255, 0, 77, 64);
-  CollectionReference users = FirebaseFirestore.instance
-      .collection('stores/goyEoBspy0fCNUIgdPWE/products');
+  CollectionReference productsRef;
 
   List<QueryDocumentSnapshot> srchProds;
   List<QueryDocumentSnapshot> srchProdsTemp = [];
   TextEditingController ctrlSearch = TextEditingController();
+  UserGaf user;
+  String store;
+  _ProductsPageState(this.user);
+
+  @override
+  void initState() {
+    super.initState();
+    store = user.stores;
+    productsRef =
+        FirebaseFirestore.instance.collection('stores/$store/products');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +53,7 @@ class _ProductsPageState extends State<ProductsPage> {
           child: Icon(Icons.add),
           onPressed: () {
             Navigator.push(context,
-                MaterialPageRoute(builder: (context) => NewProductPage()));
+                MaterialPageRoute(builder: (context) => NewProductPage(user)));
           },
         ),
       ),
@@ -51,7 +64,7 @@ class _ProductsPageState extends State<ProductsPage> {
   Widget _top() {
     return Container(
       color: colorP,
-      height: 160,
+      height: 170,
       child: Column(
         children: [
           Container(
@@ -106,6 +119,7 @@ class _ProductsPageState extends State<ProductsPage> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => NewProductPage(
+                                            user,
                                             data: prod.product,
                                           )));
                             }
@@ -188,7 +202,7 @@ class _ProductsPageState extends State<ProductsPage> {
           padding: EdgeInsets.only(top: 20),
           color: Colors.white,
           child: StreamBuilder<QuerySnapshot>(
-            stream: users.snapshots(),
+            stream: productsRef.snapshots(),
             builder:
                 (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
               if (snapshot.hasError) {
@@ -227,6 +241,7 @@ class _ProductsPageState extends State<ProductsPage> {
                               context,
                               MaterialPageRoute(
                                   builder: (context) => NewProductPage(
+                                        user,
                                         data: ds,
                                       ))),
                           child: Product(

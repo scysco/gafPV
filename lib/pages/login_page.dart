@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:path_provider/path_provider.dart';
@@ -116,7 +117,6 @@ class LoginPage extends StatelessWidget {
 
       if (userCredential != null) {
         final Map data = await _data;
-        writeUser(data);
         Navigator.push(
             context, MaterialPageRoute(builder: (context) => HomePage(null)));
       }
@@ -145,23 +145,5 @@ class LoginPage extends StatelessWidget {
       }
     });
     return user;
-  }
-
-  Future<File> writeUser(Map user) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final path = directory.path;
-    String ustw = 'name:' +
-        user['name'] +
-        ',secondName:' +
-        user['secondName'] +
-        ',thirdName:' +
-        user['thirdName'] +
-        ',stores:' +
-        user['stores'] +
-        ',permissions:' +
-        user['permissions'] +
-        ',image:' +
-        user['image'];
-    return File('$path/user.gaf').writeAsString(ustw);
   }
 }

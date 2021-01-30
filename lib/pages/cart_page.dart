@@ -1,22 +1,26 @@
 import 'package:audioplayers/audio_cache.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:gafemp/model/product_gaf.dart';
 import 'package:gafemp/model/report_sale_gaf.dart';
+import 'package:gafemp/model/user_gaf.dart';
 import 'package:gafemp/widget/product.dart';
 
 class CartPage extends StatefulWidget {
+  final UserGaf user;
+  CartPage(this.user);
   @override
-  _CartPageState createState() => _CartPageState();
+  _CartPageState createState() => _CartPageState(user);
 }
 
 class _CartPageState extends State<CartPage> {
-  CollectionReference users = FirebaseFirestore.instance
-      .collection('stores/goyEoBspy0fCNUIgdPWE/products');
-  CollectionReference sales = FirebaseFirestore.instance
-      .collection('stores/goyEoBspy0fCNUIgdPWE/sales');
+  UserGaf user;
+  String store;
+  CollectionReference productsRef;
+  CollectionReference sales;
   String qrCodeResult;
   final Color colorP = Color.fromARGB(255, 0, 77, 64);
   List<ProductGaf> products = [];
@@ -24,6 +28,17 @@ class _CartPageState extends State<CartPage> {
   TextEditingController ctrlSearch = TextEditingController();
   List<QueryDocumentSnapshot> srchProds;
   List<QueryDocumentSnapshot> srchProdsTemp = [];
+
+  _CartPageState(this.user);
+
+  @override
+  void initState() {
+    super.initState();
+    store = user.stores;
+    productsRef =
+        FirebaseFirestore.instance.collection('stores/$store/products');
+    sales = FirebaseFirestore.instance.collection('stores/$store/sales');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -213,7 +228,7 @@ class _CartPageState extends State<CartPage> {
       qrCodeResult = codeSanner;
       player.play('beep-barcode.mp3');
       FirebaseFirestore.instance
-          .collection('stores/goyEoBspy0fCNUIgdPWE/products')
+          .collection('stores/$store/products')
           .doc(qrCodeResult)
           .get()
           .then((DocumentSnapshot documentSnapshot) {
@@ -296,7 +311,7 @@ class _CartPageState extends State<CartPage> {
                   ),
                   Expanded(
                     child: StreamBuilder<QuerySnapshot>(
-                      stream: users.snapshots(),
+                      stream: productsRef.snapshots(),
                       builder: (BuildContext context,
                           AsyncSnapshot<QuerySnapshot> snapshot) {
                         if (snapshot.hasError) {
@@ -715,6 +730,7 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
+  FirebaseAuth auth = FirebaseAuth.instance;
   void resportSale() {
     DateTime now = new DateTime.now();
     List<ReportSaleGaf> reports = [];
@@ -731,7 +747,7 @@ class _CartPageState extends State<CartPage> {
           now.day,
           now.hour,
           now.minute,
-          'employ');
+          auth.currentUser.uid);
       reports.add(report);
     });
     reports.forEach((element) {

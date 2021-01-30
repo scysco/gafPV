@@ -1,8 +1,16 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:gafemp/model/user_gaf.dart';
 import 'package:gafemp/pages/cart_page.dart';
+import 'package:gafemp/pages/message_page.dart';
 import 'package:gafemp/pages/products_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -15,9 +23,34 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final Color colorP = Color.fromARGB(255, 0, 77, 64);
   FirebaseAuth auth = FirebaseAuth.instance;
+  FirebaseFirestore _db = FirebaseFirestore.instance;
+  FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  FirebaseDatabase database = FirebaseDatabase.instance;
+
+  StreamSubscription<Event> _messagesSubscription;
+
+  DatabaseReference myRef;
   UserGaf user;
+  RemoteMessage initialMessage;
 
   _HomePageState(this.user);
+  @override
+  void initState() {
+    super.initState();
+    asignMessage();
+    myRef = database.reference().child('/chat/goyEoBspy0fCNUIgdPWE');
+    DatabaseReference ref = myRef.child(myRef.push().key);
+    ref.child('message').set('value');
+    ref.child('d').set('1');
+
+    StreamSubscription<Event> _messagesSubscription =
+        myRef.onChildAdded.listen((event) {
+      print('Child added: ${event.snapshot.value}');
+    }, onError: (Object o) {
+      final DatabaseError error = o;
+      print('Error: ${error.code} ${error.message}');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +76,7 @@ class _HomePageState extends State<HomePage> {
             child: FloatingActionButton(
               onPressed: () {
                 Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => CartPage()));
+                    MaterialPageRoute(builder: (context) => CartPage(user)));
               },
               child: Image(
                 image: AssetImage('assets/cart.png'),
@@ -190,7 +223,8 @@ class _HomePageState extends State<HomePage> {
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => ProductsPage()));
+                                      builder: (context) =>
+                                          ProductsPage(user)));
                             },
                             child: Image(
                               image: AssetImage('assets/products.png'),
@@ -246,22 +280,29 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              Container(
-                padding: EdgeInsets.only(right: 20),
-                child: Column(
-                  children: [
-                    Image(
-                      image: AssetImage('assets/messages.png'),
-                      height: 40,
+              Material(
+                color: colorP,
+                child: InkWell(
+                  customBorder: CircleBorder(),
+                  onTap: () {},
+                  child: Container(
+                    padding: EdgeInsets.only(right: 20),
+                    child: Column(
+                      children: [
+                        Image(
+                          image: AssetImage('assets/messages.png'),
+                          height: 40,
+                        ),
+                        Text(
+                          "Mensajes",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      "Mensajes",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -276,26 +317,37 @@ class _HomePageState extends State<HomePage> {
       context: context,
       barrierDismissible: true,
       builder: (context) {
-        return StatefulBuilder(builder: (context, _setState) {
+        return StatefulBuilder(builder: (_context, _setState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10.0)),
             title: Text('Cambiar Foto de Perfil'),
             content: Container(
               width: MediaQuery.of(context).size.width * .60,
-              height: MediaQuery.of(context).size.height * .30,
+              height: MediaQuery.of(context).size.height * .40,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Container(
-                    margin: EdgeInsets.fromLTRB(20, 25, 20, 30),
-                    child: _avatarLoad(80),
+                  Material(
+                    color: Colors.white,
+                    child: InkWell(
+                      customBorder: CircleBorder(),
+                      onTap: () {
+                        _filePicker(_setState);
+                      },
+                      child: Container(
+                        margin: EdgeInsets.fromLTRB(20, 25, 20, 30),
+                        child: _avatarLoad(80, onEdit: true),
+                      ),
+                    ),
                   ),
                   Material(
                     color: Colors.white,
                     child: InkWell(
                       customBorder: CircleBorder(),
-                      onTap: () {},
+                      onTap: () {
+                        _setProfileImage(_context);
+                      },
                       child: Container(
                         padding: EdgeInsets.all(20),
                         child: Text(
@@ -317,17 +369,30 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _avatarLoad(double radius) {
+  Widget _avatarLoad(double radius, {bool onEdit = false}) {
     return user.image
         ? FutureBuilder<String>(
             future: _urlImage(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.done) {
                 if (snapshot.data != null) {
-                  return CircleAvatar(
-                    backgroundImage: NetworkImage(snapshot.data),
-                    radius: radius,
-                  );
+                  return onEdit
+                      ? CircleAvatar(
+                          child: Container(
+                              decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  image: DecorationImage(
+                                    fit: BoxFit.fill,
+                                    image: (_image != null)
+                                        ? FileImage(_image)
+                                        : NetworkImage(snapshot.data),
+                                  ))),
+                          radius: radius,
+                        )
+                      : CircleAvatar(
+                          backgroundImage: NetworkImage(snapshot.data),
+                          radius: radius,
+                        );
                 } else {}
               }
               return CircleAvatar(
@@ -342,5 +407,39 @@ class _HomePageState extends State<HomePage> {
             backgroundColor: Colors.white70,
             radius: radius,
           );
+  }
+
+  File _image;
+  Future<void> _filePicker(_setState) async {
+    FilePickerResult result = await FilePicker.platform.pickFiles(
+        type: FileType.custom, allowedExtensions: ['jpg', 'jpeg', 'png']);
+    if (result != null) {
+      _setState(() {
+        _image = File(result.files.first.path);
+      });
+      print('***********' + _image.path);
+    }
+  }
+
+  void _setProfileImage(BuildContext context) async {
+    if (_image != null) {
+      try {
+        Navigator.of(context).pop();
+        await firebase_storage.FirebaseStorage.instance
+            .ref('profilePictures/' + auth.currentUser.uid + '.jpg')
+            .putFile(_image);
+        _image = null;
+        setState(() {});
+      } on FirebaseException catch (e) {
+        // e.g, e.code == 'canceled'
+      }
+    } else {
+      _image = null;
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> asignMessage() async {
+    await FirebaseMessaging.instance.getInitialMessage();
   }
 }

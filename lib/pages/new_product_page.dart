@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'package:gafemp/model/user_gaf.dart';
 
 class NewProductPage extends StatefulWidget {
   final Map data;
-  NewProductPage({this.data});
+  final UserGaf user;
+  NewProductPage(this.user, {this.data});
   @override
-  _NewProductPageState createState() => _NewProductPageState(data: data);
+  _NewProductPageState createState() => _NewProductPageState(user, data: data);
 }
 
 class _NewProductPageState extends State<NewProductPage> {
@@ -20,12 +22,13 @@ class _NewProductPageState extends State<NewProductPage> {
   final ctrlPrice = TextEditingController();
   final ctrlUnits = TextEditingController();
   final ctrlTags = TextEditingController();
-  CollectionReference products = FirebaseFirestore.instance
-      .collection('stores/goyEoBspy0fCNUIgdPWE/products');
+  CollectionReference products;
 
   Map data;
+  UserGaf user;
+  String store;
 
-  _NewProductPageState({this.data});
+  _NewProductPageState(this.user, {this.data});
 
   @override
   void initState() {
@@ -40,12 +43,14 @@ class _NewProductPageState extends State<NewProductPage> {
       ctrlUnits.text = data['unidades'].toString();
       ctrlTags.text = data['tags'];
     }
+    store = user.stores;
+    products = FirebaseFirestore.instance.collection('stores/$store/products');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomPadding: true,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           SafeArea(
@@ -207,22 +212,26 @@ class _NewProductPageState extends State<NewProductPage> {
         child: ListView(
           padding: EdgeInsets.only(top: 10),
           children: [
-            TextField(
-              enableInteractiveSelection: false,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
+            Material(
+              child: InkWell(
+                onDoubleTap: () {
+                  FocusScope.of(context).requestFocus(new FocusNode());
+                  _scanCode();
+                },
+                child: TextField(
+                  enableInteractiveSelection: true,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    labelText: 'Codigo del producto',
+                    helperText: 'Presiona para Escanear',
+                    suffixIcon: Icon(Icons.qr_code),
+                    icon: Icon(Icons.qr_code_scanner),
+                  ),
+                  controller: ctrlCode,
                 ),
-                labelText: 'Codigo del producto',
-                helperText: 'Presiona para Escanear',
-                suffixIcon: Icon(Icons.qr_code),
-                icon: Icon(Icons.qr_code_scanner),
               ),
-              controller: ctrlCode,
-              onTap: () {
-                FocusScope.of(context).requestFocus(new FocusNode());
-                _scanCode();
-              },
             ),
             Divider(),
             TextField(

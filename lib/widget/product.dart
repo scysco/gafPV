@@ -4,8 +4,15 @@ import 'package:gafemp/model/product_gaf.dart';
 class Product extends StatelessWidget {
   final ProductGaf product;
   final Color color;
+  String name;
 
-  Product(this.color, this.product);
+  Product(this.color, this.product) {
+    if (this.product.nombre.length > 25) {
+      name = this.product.nombre.substring(0, 25);
+    } else {
+      name = this.product.nombre;
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -25,7 +32,7 @@ class Product extends StatelessWidget {
                 ),
               ),
               Text(
-                product.nombre ?? 'default value',
+                name ?? 'default value',
                 style: TextStyle(
                   fontSize: 18,
                   color: color,
