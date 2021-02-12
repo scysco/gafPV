@@ -5,10 +5,12 @@ import 'package:gafemp/model/user_gaf.dart';
 
 class NewProductPage extends StatefulWidget {
   final Map data;
+  final String code;
   final UserGaf user;
-  NewProductPage(this.user, {this.data});
+  NewProductPage(this.user, {this.data, this.code});
   @override
-  _NewProductPageState createState() => _NewProductPageState(user, data: data);
+  _NewProductPageState createState() =>
+      _NewProductPageState(user, data: data, code: code);
 }
 
 class _NewProductPageState extends State<NewProductPage> {
@@ -20,6 +22,8 @@ class _NewProductPageState extends State<NewProductPage> {
   final ctrlType = TextEditingController();
   final ctrlCost = TextEditingController();
   final ctrlPrice = TextEditingController();
+  final ctrlUnitsPP = TextEditingController();
+  final ctrlPriceUnit = TextEditingController();
   final ctrlUnits = TextEditingController();
   final ctrlTags = TextEditingController();
   CollectionReference products;
@@ -27,12 +31,16 @@ class _NewProductPageState extends State<NewProductPage> {
   Map data;
   UserGaf user;
   String store;
+  String code;
 
-  _NewProductPageState(this.user, {this.data});
+  _NewProductPageState(this.user, {this.data, this.code});
 
   @override
   void initState() {
     super.initState();
+    if (code != null) {
+      ctrlCode.text = code;
+    }
     if (data != null) {
       ctrlCode.text = data['code'];
       ctrlName.text = data['nombre'];
@@ -40,7 +48,12 @@ class _NewProductPageState extends State<NewProductPage> {
       ctrlType.text = data['tipo'];
       ctrlCost.text = data['costo'].toString();
       ctrlPrice.text = data['precio'].toString();
-      ctrlUnits.text = data['unidades'].toString();
+      ctrlUnits.text =
+          data['unidades'] != null ? data['unidades'].toString() : '';
+      ctrlPriceUnit.text =
+          data['priceUnit'] != null ? data['priceUnit'].toString() : '';
+      ctrlUnitsPP.text =
+          data['unitsPP'] != null ? data['unitsPP'].toString() : '';
       ctrlTags.text = data['tags'];
     }
     store = user.stores;
@@ -97,23 +110,37 @@ class _NewProductPageState extends State<NewProductPage> {
     setState(() {
       _isLoading = true;
     });
+    Map<String, dynamic> producto = {
+      'nombre': ctrlName.text,
+      'marca': ctrlBrand.text,
+      'tipo': ctrlType.text,
+      'costo': double.parse(ctrlCost.text),
+      'precio': double.parse(ctrlPrice.text),
+      'unidades': ctrlUnits.text != '' ? double.parse(ctrlUnits.text) : null,
+      'priceUnit':
+          ctrlPriceUnit.text != '' ? double.parse(ctrlPriceUnit.text) : null,
+      'unitsPP': ctrlUnitsPP.text != '' ? double.parse(ctrlUnitsPP.text) : null,
+      'tags': ctrlTags.text,
+    };
     if (isFilled()) {
-      return products
-          .doc(ctrlCode.text)
-          .set({
-            'nombre': ctrlName.text,
-            'marca': ctrlBrand.text,
-            'tipo': ctrlType.text,
-            'costo': double.parse(ctrlCost.text),
-            'precio': double.parse(ctrlPrice.text),
-            'unidades': double.parse(ctrlUnits.text),
-            'tags': ctrlTags.text,
-          })
-          .then((value) => Navigator.pop(context))
-          .whenComplete(() => setState(() {
-                _isLoading = false;
-              }))
-          .catchError((error) => print("*** Failed to add user: $error"));
+      if (genId) {
+        return products
+            .add(producto)
+            .then((value) => Navigator.pop(context))
+            .whenComplete(() => setState(() {
+                  _isLoading = false;
+                }))
+            .catchError((error) => print("*** Failed to add user: $error"));
+      } else {
+        return products
+            .doc(ctrlCode.text)
+            .set(producto)
+            .then((value) => Navigator.pop(context))
+            .whenComplete(() => setState(() {
+                  _isLoading = false;
+                }))
+            .catchError((error) => print("*** Failed to add user: $error"));
+      }
     } else {
       setState(() {
         _isLoading = false;
@@ -122,13 +149,11 @@ class _NewProductPageState extends State<NewProductPage> {
     }
   }
 
+  bool genId = false;
   bool isFilled() {
     bool isfill = true;
     if (ctrlCode.text == null || ctrlCode.text == '' || ctrlCode.text == '-1') {
-      isfill = false;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Codigo de barras no valido"),
-      ));
+      genId = true;
     }
     if (ctrlName.text == null || ctrlName.text == '') {
       if (isfill) {
@@ -142,14 +167,6 @@ class _NewProductPageState extends State<NewProductPage> {
       if (isfill) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text("Falta el nombre de la marca"),
-        ));
-      }
-      isfill = false;
-    }
-    if (ctrlType.text == null || ctrlType.text == '') {
-      if (isfill) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Falta el tipo de producto"),
         ));
       }
       isfill = false;
@@ -172,15 +189,28 @@ class _NewProductPageState extends State<NewProductPage> {
     }
     if (ctrlUnits.text == null || ctrlUnits.text == '') {
       if (isfill) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Define cuantas unidades existen"),
-        ));
+        ctrlUnits.text = '';
       }
-      isfill = false;
+    }
+
+    if (ctrlType.text == null || ctrlType.text == '') {
+      if (isfill) {
+        ctrlType.text = '';
+      }
     }
     if (ctrlTags.text == null || ctrlTags.text == '') {
       if (isfill) {
         ctrlTags.text = '';
+      }
+    }
+    if (ctrlUnitsPP.text == null || ctrlUnitsPP.text == '') {
+      if (isfill) {
+        ctrlUnitsPP.text = '';
+      }
+    }
+    if (ctrlPriceUnit.text == null || ctrlPriceUnit.text == '') {
+      if (isfill) {
+        ctrlPriceUnit.text = '';
       }
     }
     return isfill;
@@ -204,6 +234,12 @@ class _NewProductPageState extends State<NewProductPage> {
     );
   }
 
+  String helperText2 = 'Cantidad de productos';
+  String labelText2 = 'Unidades';
+
+  String labelText3 = 'Precio';
+  String helperText3 = 'Precio del producto o paquete';
+
   Widget _center(BuildContext context) {
     return Expanded(
       child: Container(
@@ -214,12 +250,8 @@ class _NewProductPageState extends State<NewProductPage> {
           children: [
             Material(
               child: InkWell(
-                onDoubleTap: () {
-                  FocusScope.of(context).requestFocus(new FocusNode());
-                  _scanCode();
-                },
                 child: TextField(
-                  enableInteractiveSelection: true,
+                  enableInteractiveSelection: false,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.0),
@@ -230,7 +262,20 @@ class _NewProductPageState extends State<NewProductPage> {
                     icon: Icon(Icons.qr_code_scanner),
                   ),
                   controller: ctrlCode,
+                  onTap: () {
+                    FocusScope.of(context).requestFocus(new FocusNode());
+                    _scanCode();
+                  },
                 ),
+                onTapCancel: () {
+                  print(ctrlCode.text);
+                  print(ctrlName.text);
+                },
+                onDoubleTap: () {
+                  setState(() {
+                    ctrlCode.text = '';
+                  });
+                },
               ),
             ),
             Divider(),
@@ -265,20 +310,6 @@ class _NewProductPageState extends State<NewProductPage> {
             ),
             Divider(),
             TextField(
-              // autofocus: true,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                hintText: 'Ejemplo: Bebidas',
-                labelText: 'Tipo',
-                icon: Icon(Icons.sort),
-              ),
-              controller: ctrlType,
-            ),
-            Divider(),
-            TextField(
                 // autofocus: true,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
@@ -286,7 +317,7 @@ class _NewProductPageState extends State<NewProductPage> {
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                   labelText: 'Costo',
-                  helperText: 'Costo unitario del producto',
+                  helperText: 'Costo del producto o paquete',
                   icon: Icon(Icons.monetization_on),
                 ),
                 controller: ctrlCost),
@@ -298,8 +329,10 @@ class _NewProductPageState extends State<NewProductPage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
                 ),
-                labelText: 'Precio',
-                helperText: 'Precio unitario del producto',
+                labelText: labelText3,
+                helperText: helperText3,
+                labelStyle: TextStyle(
+                    color: labelText3 == 'Precio' ? Colors.black : Colors.blue),
                 icon: Icon(Icons.attach_money),
               ),
               controller: ctrlPrice,
@@ -312,11 +345,73 @@ class _NewProductPageState extends State<NewProductPage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
                 ),
-                labelText: 'Unidades',
-                helperText: 'Cantidad de productos',
+                labelText: labelText2,
+                helperText: helperText2,
+                labelStyle: TextStyle(
+                    color:
+                        labelText2 == 'Unidades' ? Colors.black : Colors.blue),
                 icon: Icon(Icons.assignment),
               ),
               controller: ctrlUnits,
+            ),
+            Divider(),
+            TextField(
+              // autofocus: true,
+              keyboardType: TextInputType.number,
+              onChanged: (txt) {
+                if (txt != '') {
+                  setState(() {
+                    labelText2 = 'Unidades Totales';
+                    helperText2 = 'Todas las unidades existentes';
+                    labelText3 = 'Precio por Paquete';
+                    helperText3 = 'Precio que tendria cada paquete';
+                  });
+                } else {
+                  setState(() {
+                    labelText2 = 'Unidades';
+                    helperText2 = 'Cantidad de productos';
+                    labelText3 = 'Precio';
+                    helperText3 = 'Precio del producto o paquete';
+                  });
+                }
+              },
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                labelText: 'Precio por unidad',
+                helperText: 'Dejar vacio si no aplica',
+                icon: Icon(Icons.attach_money),
+              ),
+              controller: ctrlPriceUnit,
+            ),
+            Divider(),
+            TextField(
+              // autofocus: true,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                labelText: 'Unidades por paquete',
+                helperText: 'Dejar vacio si no aplica',
+                icon: Icon(Icons.app_registration),
+              ),
+              controller: ctrlUnitsPP,
+            ),
+            Divider(),
+            TextField(
+              // autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                hintText: 'Ejemplo: Bebidas',
+                labelText: 'Tipo',
+                icon: Icon(Icons.sort),
+              ),
+              controller: ctrlType,
             ),
             Divider(),
             TextField(
@@ -347,10 +442,13 @@ class _NewProductPageState extends State<NewProductPage> {
   Future<void> _scanCode() async {
     qrCodeResult = await FlutterBarcodeScanner.scanBarcode(
         "#004d40", "Cancel", true, ScanMode.QR);
-    if (qrCodeResult != null)
-      setState(() {
-        ctrlCode.text = qrCodeResult;
-      });
+    if (qrCodeResult != null) {
+      if (qrCodeResult != "-1") {
+        setState(() {
+          ctrlCode.text = qrCodeResult;
+        });
+      }
+    }
   }
 
   String qrCodeResult;
@@ -367,7 +465,7 @@ class _NewProductPageState extends State<NewProductPage> {
           .whenComplete(() => setState(() {
                 _isLoading = false;
               }))
-          .catchError((error) => print("*** Failed to add user: $error"));
+          .catchError((error) => print("*** Failed to delete user: $error"));
     } else {
       setState(() {
         _isLoading = false;

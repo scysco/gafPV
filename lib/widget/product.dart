@@ -4,17 +4,11 @@ import 'package:gafemp/model/product_gaf.dart';
 class Product extends StatelessWidget {
   final ProductGaf product;
   final Color color;
-  String name;
 
-  Product(this.color, this.product) {
-    if (this.product.nombre.length > 25) {
-      name = this.product.nombre.substring(0, 25);
-    } else {
-      name = this.product.nombre;
-    }
-  }
+  Product(this.color, this.product);
   @override
   Widget build(BuildContext context) {
+    print("**" + MediaQuery.of(context).size.width.toString());
     return Container(
       margin: EdgeInsets.only(bottom: 10, top: 10),
       child: Row(
@@ -26,17 +20,21 @@ class Product extends StatelessWidget {
               Text(
                 product.marca ?? 'default value',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 20,
                   color: color,
                   fontWeight: FontWeight.w300,
                 ),
               ),
-              Text(
-                name ?? 'default value',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: color,
-                  fontWeight: FontWeight.w200,
+              Container(
+                width: MediaQuery.of(context).size.width * .5,
+                child: Text(
+                  product.nombre ?? 'default value',
+                  softWrap: true,
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: color,
+                    fontWeight: FontWeight.w200,
+                  ),
                 ),
               ),
             ],
@@ -55,7 +53,7 @@ class Product extends StatelessWidget {
               Text(
                 '\$' + product.precio.toString() ?? 'default value',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 20,
                   color: color,
                   fontWeight: FontWeight.w400,
                 ),

@@ -1,5 +1,5 @@
 class ProductGaf {
-  Map product = Map();
+  Map<String, dynamic> product = Map();
   String code;
   String nombre;
   String marca;
@@ -8,6 +8,8 @@ class ProductGaf {
   String tipo;
   double unidades;
   List<String> tags;
+  double priceUnit;
+  double unitsPP;
   ProductGaf.map(this.product, {this.code, this.unidades}) {
     if (code != null) {
       product['code'] = code;
@@ -19,6 +21,8 @@ class ProductGaf {
     costo = product['costo'];
     precio = product['precio'];
     tipo = product['tipo'];
+    priceUnit = product['priceUnit'];
+    unitsPP = product['unitsPP'];
     if (unidades != null) {
       product['unidades'] = unidades;
     } else {
@@ -27,7 +31,7 @@ class ProductGaf {
     tags = product['tags'].split(',');
   }
   ProductGaf(this.code, this.nombre, this.marca, this.costo, this.precio,
-      this.tipo, this.unidades, this.tags) {
+      this.tipo, this.unidades, this.priceUnit, this.unitsPP, this.tags) {
     product['code'] = code;
     product['nombre'] = nombre;
     product['producto'] = marca;
@@ -35,6 +39,8 @@ class ProductGaf {
     product['precio'] = precio;
     product['tipo'] = tipo;
     product['unidades'] = unidades;
+    product['priceUnit'] = priceUnit;
+    product['unitsPP'] = unitsPP;
     product['tags'] = tags;
   }
 }

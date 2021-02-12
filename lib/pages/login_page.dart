@@ -1,17 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+import 'package:gafemp/model/user_gaf.dart';
 
 import 'package:gafemp/pages/home_page.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final Color colorP = Color.fromARGB(255, 0, 77, 64);
+
   final ctlMail = TextEditingController();
+
   final ctlPassword = TextEditingController();
+
   final FirebaseAuth auth = FirebaseAuth.instance;
+
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   @override
@@ -108,29 +115,36 @@ class LoginPage extends StatelessWidget {
   }
 
   Future<void> login(BuildContext context) async {
+    setState(() => _isLoading = true);
     try {
-      UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: ctlMail.text,
-        password: ctlPassword.text,
-      );
-
-      if (userCredential != null) {
-        final Map data = await _data;
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => HomePage(null)));
+      if (await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: ctlMail.text,
+            password: ctlPassword.text,
+          ) !=
+          null) {
+        _data.then((value) {
+          setState(() => _isLoading = false);
+          Navigator.push(context,
+              MaterialPageRoute(builder: (context) => HomePage(value)));
+        });
       }
     } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
       if (e.code == 'user-not-found') {
-        print('No user found for that email.');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Correo no Encontrado"),
+        ));
       } else if (e.code == 'wrong-password') {
-        print('Wrong password provided for that user.');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Contraseña Incorecta!!"),
+        ));
       }
     }
   }
 
-  Future<Map<String, dynamic>> get _data async {
-    Map user;
+  Future<UserGaf> get _data async {
+    setState(() => _isLoading = true);
+    UserGaf user;
     await firestore
         .collection('users')
         .doc(FirebaseAuth.instance.currentUser.uid)
@@ -139,11 +153,35 @@ class LoginPage extends StatelessWidget {
       if (documentSnapshot.exists) {
         print('Document data: ${documentSnapshot.data()}');
         //print(data['name']);
-        user = documentSnapshot.data();
+        user = UserGaf.map(documentSnapshot.data());
       } else {
         print('Document does not exist on the database');
       }
     });
     return user;
+  }
+
+  bool _isLoading = false;
+
+  Widget _crearLoading() {
+    if (_isLoading) {
+      return Column(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: <Widget>[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              CircularProgressIndicator(),
+            ],
+          ),
+          SizedBox(
+            height: 15.0,
+          )
+        ],
+      );
+    } else {
+      return Container();
+    }
   }
 }

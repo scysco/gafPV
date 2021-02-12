@@ -28,6 +28,7 @@ class _CartPageState extends State<CartPage> {
   TextEditingController ctrlSearch = TextEditingController();
   List<QueryDocumentSnapshot> srchProds;
   List<QueryDocumentSnapshot> srchProdsTemp = [];
+  List<QueryDocumentSnapshot> servicesProds;
 
   _CartPageState(this.user);
 
@@ -61,13 +62,27 @@ class _CartPageState extends State<CartPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Image(
-            image: AssetImage('assets/arrowsec.png'),
-            height: 40,
+          Material(
+            color: colorP,
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).pop();
+              },
+              child: Image(
+                image: AssetImage('assets/arrowsec.png'),
+                height: 40,
+              ),
+            ),
           ),
-          Image(
-            image: AssetImage('assets/phonesec.png'),
-            width: 30,
+          Material(
+            color: colorP,
+            child: InkWell(
+              onTap: () => _servicesPnl(context),
+              child: Image(
+                image: AssetImage('assets/products.png'),
+                height: 40,
+              ),
+            ),
           ),
         ],
       ),
@@ -85,7 +100,7 @@ class _CartPageState extends State<CartPage> {
             Text(
               'Carrito',
               style: TextStyle(
-                fontSize: 38,
+                fontSize: 28,
                 color: Colors.white,
                 fontWeight: FontWeight.w300,
               ),
@@ -151,7 +166,6 @@ class _CartPageState extends State<CartPage> {
                   customBorder: CircleBorder(),
                   onTap: () => _searchPnl(context),
                   child: Container(
-                    width: 80,
                     padding: EdgeInsets.all(15),
                     child: Column(
                       children: [
@@ -192,7 +206,6 @@ class _CartPageState extends State<CartPage> {
                   customBorder: CircleBorder(),
                   onTap: () => _endSale(context),
                   child: Container(
-                    width: 80,
                     padding: EdgeInsets.all(15),
                     child: Column(
                       children: [
@@ -241,7 +254,7 @@ class _CartPageState extends State<CartPage> {
     }
   }
 
-  void _addProduct(String code, Map<String, dynamic> data) {
+  void _addProduct(String code, Map<String, dynamic> data) async {
     ProductGaf prd;
     bool exis = false;
     products.forEach((element) {
@@ -253,10 +266,18 @@ class _CartPageState extends State<CartPage> {
       total += element.precio;
     });
     if (!exis) {
-      prd = ProductGaf.map(data, code: code, unidades: 1);
-      products.add(prd);
+      if (data['priceUnit'] == null) {
+        prd = ProductGaf.map(data, code: code, unidades: 1);
+      } else {
+        prd = await _unitsOrPack(context, data, code);
+      }
+      if (prd != null) {
+        products.add(prd);
+      }
     }
-    _setTotal();
+    if (prd != null) {
+      _setTotal();
+    }
   }
 
   void _setTotal() {
@@ -337,7 +358,98 @@ class _CartPageState extends State<CartPage> {
                                     double.parse(ds['costo'].toString()),
                                     double.parse(ds['precio'].toString()),
                                     ds['tipo'],
-                                    double.parse(ds['unidades'].toString()),
+                                    ds['unidades'] != null
+                                        ? double.parse(
+                                            ds['unidades'].toString())
+                                        : null,
+                                    ds['priceUnit'] != null
+                                        ? double.parse(
+                                            ds['priceUnit'].toString())
+                                        : null,
+                                    ds['unitsPP'] != null
+                                        ? double.parse(ds['unitsPP'].toString())
+                                        : null,
+                                    ['s', 'sd']);
+                                return Material(
+                                  color: Colors.white,
+                                  child: InkWell(
+                                    onTap: () => _addUnits(context, prod),
+                                    child: Container(
+                                      width: 150,
+                                      child: Product(Colors.black87, prod),
+                                    ),
+                                  ),
+                                );
+                              });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  void _servicesPnl(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, _setState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0)),
+            title: Text('Servicios'),
+            content: Container(
+              width: MediaQuery.of(context).size.width * .85,
+              height: MediaQuery.of(context).size.height * .65,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: productsRef
+                          .where('tipo', isEqualTo: 'Servicios')
+                          .snapshots(),
+                      builder: (BuildContext context,
+                          AsyncSnapshot<QuerySnapshot> snapshot) {
+                        if (snapshot.hasError) {
+                          return Text('Something went wrong');
+                        }
+
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Text("Loading");
+                        } else {
+                          servicesProds = snapshot.data.docs;
+                          return ListView.builder(
+                              //padding: EdgeInsets.all(25),
+                              itemCount: servicesProds.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                Map ds = servicesProds[index].data();
+                                String id = servicesProds[index].id;
+                                ds['code'] = id;
+                                ProductGaf prod = ProductGaf(
+                                    ds['code'],
+                                    ds['nombre'],
+                                    ds['marca'],
+                                    double.parse(ds['costo'].toString()),
+                                    double.parse(ds['precio'].toString()),
+                                    ds['tipo'],
+                                    ds['unidades'] != null
+                                        ? double.parse(
+                                            ds['unidades'].toString())
+                                        : null,
+                                    ds['priceUnit'] != null
+                                        ? double.parse(
+                                            ds['priceUnit'].toString())
+                                        : null,
+                                    ds['unitsPP'] != null
+                                        ? double.parse(ds['unitsPP'].toString())
+                                        : null,
                                     ['s', 'sd']);
                                 return Material(
                                   color: Colors.white,
@@ -414,7 +526,7 @@ class _CartPageState extends State<CartPage> {
                               ),
                             )),
                         Container(
-                          width: 80,
+                          width: 55,
                           height: 40,
                           alignment: Alignment.center,
                           child: TextField(
@@ -539,7 +651,7 @@ class _CartPageState extends State<CartPage> {
                               ),
                             )),
                         Container(
-                          width: 80,
+                          width: 55,
                           height: 40,
                           alignment: Alignment.center,
                           child: TextField(
@@ -633,11 +745,14 @@ class _CartPageState extends State<CartPage> {
         return StatefulBuilder(builder: (context, _setState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0)),
-            title: Text('COMPLETAR VENTA'),
+                borderRadius: BorderRadius.circular(16.0)),
+            title: Text('COMPLETAR VENTA',
+                style: TextStyle(
+                  fontSize: 16,
+                )),
             content: Container(
               width: MediaQuery.of(context).size.width * .70,
-              height: MediaQuery.of(context).size.height * .40,
+              height: MediaQuery.of(context).size.height * .56,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -648,13 +763,13 @@ class _CartPageState extends State<CartPage> {
                         margin: EdgeInsets.only(top: 10, bottom: 10),
                         child: Text(
                           'Total',
-                          style: TextStyle(fontSize: 30),
+                          style: TextStyle(fontSize: 25),
                         ),
                       ),
                       Container(
                           alignment: Alignment.centerRight,
                           child: Text('\$' + total.toString(),
-                              style: TextStyle(fontSize: 50, color: colorP))),
+                              style: TextStyle(fontSize: 35, color: colorP))),
                       Divider(
                         height: 20,
                       ),
@@ -663,7 +778,7 @@ class _CartPageState extends State<CartPage> {
                         margin: EdgeInsets.only(bottom: 10),
                         child: Text(
                           'Cambio',
-                          style: TextStyle(fontSize: 30),
+                          style: TextStyle(fontSize: 25),
                         ),
                       ),
                       Container(
@@ -671,7 +786,7 @@ class _CartPageState extends State<CartPage> {
                         child: Text(
                           '\$' + strCambio,
                           style:
-                              TextStyle(fontSize: 50, color: Colors.redAccent),
+                              TextStyle(fontSize: 35, color: Colors.redAccent),
                         ),
                       ),
                     ],
@@ -695,7 +810,7 @@ class _CartPageState extends State<CartPage> {
                         border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(30)),
                     )),
-                    style: TextStyle(fontSize: 38, fontWeight: FontWeight.w300),
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.w300),
                   ),
                   Material(
                     color: Colors.white,
@@ -716,7 +831,7 @@ class _CartPageState extends State<CartPage> {
                         margin: EdgeInsets.only(bottom: 15, top: 15),
                         child: Text(
                           'FINALIZAR',
-                          style: TextStyle(fontSize: 30, color: Colors.green),
+                          style: TextStyle(fontSize: 20, color: Colors.green),
                         ),
                       ),
                     ),
@@ -730,6 +845,85 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
+  Future<ProductGaf> _unitsOrPack(
+      BuildContext context, Map<String, dynamic> data, String code) async {
+    ProductGaf pr;
+    return await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, _setState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0)),
+            title: Text('ESPECIFICAR TIPO DE VENTA',
+                style: TextStyle(
+                  fontSize: 16,
+                )),
+            content: Container(
+              width: MediaQuery.of(context).size.width * .55,
+              height: MediaQuery.of(context).size.height * .40,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Divider(
+                    height: 30,
+                  ),
+                  Container(
+                      alignment: Alignment.center,
+                      child: Material(
+                        color: Colors.white,
+                        child: InkWell(
+                          child: Text('Por Paquete',
+                              style: TextStyle(fontSize: 35, color: colorP)),
+                          onTap: () {
+                            setState(() {
+                              pr =
+                                  ProductGaf.map(data, code: code, unidades: 1);
+                            });
+                            Navigator.pop(context);
+                          },
+                        ),
+                      )),
+                  Divider(
+                    height: 30,
+                  ),
+                  Container(
+                    alignment: Alignment.center,
+                    child: Material(
+                      color: Colors.white,
+                      child: InkWell(
+                        child: Text(
+                          'Por Unidades',
+                          style: TextStyle(fontSize: 35, color: colorP),
+                        ),
+                        onTap: () {
+                          double costocaja = data['costo'];
+                          double unidadescaja = data['unitsPP'];
+                          data['precio'] = data['priceUnit'];
+                          data['costo'] = costocaja / unidadescaja;
+                          setState(() {
+                            pr = ProductGaf.map(data, code: code, unidades: 1);
+                          });
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                  ),
+                  Divider(
+                    height: 30,
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    ).then((value) {
+      return pr;
+    });
+  }
+
   FirebaseAuth auth = FirebaseAuth.instance;
   void resportSale() {
     DateTime now = new DateTime.now();
@@ -739,9 +933,9 @@ class _CartPageState extends State<CartPage> {
           element.code,
           element.nombre,
           element.marca,
-          element.costo,
+          element.costo * element.unidades,
           element.precio,
-          element.precio - element.costo,
+          element.precio - (element.costo * element.unidades),
           now.year,
           now.month,
           now.day,
@@ -749,10 +943,31 @@ class _CartPageState extends State<CartPage> {
           now.minute,
           auth.currentUser.uid);
       reports.add(report);
+      decUnits(element);
     });
     reports.forEach((element) {
       addReport(element);
     });
+  }
+
+  Future<void> decUnits(ProductGaf element) {
+    double u;
+    productsRef
+        .doc(element.code)
+        .get()
+        .then((DocumentSnapshot documentSnapshot) {
+      if (documentSnapshot.exists) {
+        print('*******' + documentSnapshot.data().toString());
+        double ut = documentSnapshot.get('unidades');
+        u = ut != null ? ut - element.unidades : null;
+        productsRef
+            .doc(element.code)
+            .update({'unidades': u})
+            .then((value) => print("Repor Added"))
+            .catchError((error) => print("Failed to add Report: $error"));
+      }
+    });
+    // Call the user's CollectionReference to add a new user
   }
 
   Future<void> addReport(ReportSaleGaf element) {

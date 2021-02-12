@@ -64,7 +64,7 @@ class _ProductsPageState extends State<ProductsPage> {
   Widget _top() {
     return Container(
       color: colorP,
-      height: 170,
+      height: 180,
       child: Column(
         children: [
           Container(
@@ -111,8 +111,10 @@ class _ProductsPageState extends State<ProductsPage> {
                                 "#004d40", "Cancel", true, ScanMode.QR);
                         if (qrCodeResult != null) {
                           ProductGaf prod;
+                          bool isregistered = false;
                           srchProds.forEach((element) {
                             if (element.id == qrCodeResult) {
+                              isregistered = true;
                               prod = ProductGaf.map(element.data(),
                                   code: element.id);
                               Navigator.push(
@@ -124,6 +126,13 @@ class _ProductsPageState extends State<ProductsPage> {
                                           )));
                             }
                           });
+                          if (!isregistered) {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => NewProductPage(user,
+                                        code: qrCodeResult)));
+                          }
                         }
                       },
                       customBorder: CircleBorder(),
@@ -253,7 +262,15 @@ class _ProductsPageState extends State<ProductsPage> {
                                   double.parse(ds['costo'].toString()),
                                   double.parse(ds['precio'].toString()),
                                   ds['tipo'],
-                                  double.parse(ds['unidades'].toString()),
+                                  ds['unidades'] != null
+                                      ? double.parse(ds['unidades'].toString())
+                                      : null,
+                                  ds['priceUnit'] != null
+                                      ? double.parse(ds['priceUnit'].toString())
+                                      : null,
+                                  ds['unitsPP'] != null
+                                      ? double.parse(ds['unitsPP'].toString())
+                                      : null,
                                   ['s', 'sd'])),
                         ),
                       );
